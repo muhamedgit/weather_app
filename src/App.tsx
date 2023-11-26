@@ -1,35 +1,80 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { getWeatherData } from './weather';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  interface HourlyData {
+    temperature_2m: number[];
+  }
+
+  interface WeatherData {
+    latitude: number;
+    longitude: number;
+    hourly: HourlyData;
+  }
+
+  const [weatherData, setWeatherData] = useState<WeatherData>();
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fetchWeatherData = async (latitude: number, longitude: number) => {
+    try {
+      const data = await getWeatherData(
+        `?latitude=${latitude}&longitude=${longitude}`
+      );
+      setWeatherData(data);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const getLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            fetchWeatherData(latitude, longitude);
+          },
+          (error) => {
+            console.error('Error getting geolocation', error);
+            setLoading(false);
+          }
+        );
+      } else {
+        console.error('Geolocation is not supported by this browser.');
+        setLoading(false);
+      }
+    };
+
+    getLocation();
+  }, []);
 
   return (
     <>
       <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        {loading ? (
+          <p>Loading...</p>
+        ) : weatherData ? (
+          <div>
+            <h2>Current Weather</h2>
+            <p>
+              Location: {weatherData.latitude}, {weatherData.longitude}
+            </p>
+            {weatherData.hourly && weatherData.hourly.temperature_2m && (
+              <p>
+                Temperature:{' '}
+                {weatherData.hourly.temperature_2m[new Date().getHours() - 1]}{' '}
+                °C
+              </p>
+            )}
+          </div>
+        ) : (
+          <p>Weather information uavalibale.</p>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
