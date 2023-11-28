@@ -5,17 +5,6 @@
   text-align: center;
 }
 
-.forecast-container {
-  display: inline-flex;
-  width: 100%;
-  gap: 2rem;
-}
-
-.forecast-container div {
-  display: block;
-  width: 100%;
-}
-
 .logo {
   height: 6em;
   padding: 1.5em;

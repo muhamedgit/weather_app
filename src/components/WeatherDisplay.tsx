@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getCurentWeatherData } from '../lib/WeatherService';
 import '../App.css';
+import ForecastWeather from './ForecastWeather';
+import CurentWeather from './CurentWeather';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-type Current = {
-  currentTemperature: string;
-  icon: string;
-  text: string;
-};
-
-type ForecastDay = {
+type ForecastDayData = {
   maxTemp: number;
   minTemp: number;
   icon: string;
@@ -17,35 +15,28 @@ type ForecastDay = {
 };
 
 function WeatherDisplay() {
-  const [currentWeather, setCurrentWeather] = useState<Current>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [currentWeather, setCurrentWeather] = useState<any>();
   const [location, setLocation] = useState<string>('Maribor');
-  const [forecast, setForecast] = useState<Array<ForecastDay>>();
+  const [forecast, setForecast] = useState<ForecastDayData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchWeatherData = async (location: string) => {
     try {
       const data = await getCurentWeatherData(location);
+      setCurrentWeather(data.current);
 
-      setCurrentWeather({
-        currentTemperature: data.current.temp_c,
-        icon: data.current.condition.icon,
-        text: data.current.condition.text,
-      });
-      const forecast = data.forecast.forecastday;
-      const newForecast: Array<ForecastDay> = [];
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      forecast.map((item: any) => {
-        newForecast.push({
+      const forecastData: ForecastDayData[] = data.forecast.forecastday.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item: any) => ({
           maxTemp: item.day.maxtemp_c,
           minTemp: item.day.mintemp_c,
           icon: item.day.condition.icon,
           text: item.day.condition.text,
           date: item.date,
-        });
-      });
-      setForecast(newForecast);
-      console.log('Received Weather Data:', forecast);
+        })
+      );
+      setForecast(forecastData);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -54,52 +45,53 @@ function WeatherDisplay() {
   };
 
   useEffect(() => {
-    console.log('Fetching weather for:', location);
     fetchWeatherData(location);
   }, [location]);
 
+  const handleButtonClick = () => {
+    const cityInput = document.getElementById('cityInput');
+    if (cityInput instanceof HTMLInputElement) {
+      setLocation(cityInput.value);
+    }
+  };
+
   return (
     <>
-      <form>
-        <input
-          type='text'
-          onChange={(e) => {
-            setLocation(e.target.value);
-          }}
-        />
-      </form>
+      <div className='flex justify-center items-center gap-2 p-4'>
+        <form>
+          <Input
+            type='text'
+            placeholder='City'
+            id='cityInput'
+          />
+        </form>
+        <Button
+          variant={'outline'}
+          onClick={handleButtonClick}>
+          Get Weather
+        </Button>
+      </div>
+
       {!isLoading && (
         <div>
-          <h2>Current Weather</h2>
-          <div className='Curent-Container'>
-            <p>Location: {location}</p>
-            <p>Temperature: {currentWeather?.currentTemperature} °C</p>
-            <div>
-              <img
-                src={currentWeather?.icon}
-                alt=''
-              />
-              <p>{currentWeather?.text}</p>
-            </div>
-          </div>
+          <CurentWeather
+            currentTemp={currentWeather?.temp_c}
+            icon={currentWeather?.condition.icon}
+            text={currentWeather?.condition.text}
+            location={location}
+          />
 
-          <h2>Forecast Days</h2>
-          <div className='forecast-container'>
-            {forecast?.map((item: ForecastDay, itemIdx: number) => (
-              <div
-                key={itemIdx}
-                className='forecast-day'>
-                <div>
-                  <p>Date: {new Date(item.date).toLocaleDateString()}</p>
-                  <p>Max Temp: {item.maxTemp} °C</p>
-                  <p>Min Temp: {item.minTemp} °C</p>
-                  <img
-                    src={item.icon}
-                    alt=''
-                  />
-                  <p>{item.text}</p>
-                </div>
-              </div>
+          <h2 className=' text-2xl p-4 font-semibold'>Weekly Forecast</h2>
+          <div className=' flex flex-row gap-4'>
+            {forecast.map((day: ForecastDayData, index: number) => (
+              <ForecastWeather
+                key={index}
+                maxTemp={day.maxTemp}
+                minTemp={day.minTemp}
+                icon={day.icon}
+                text={day.text}
+                date={day.date}
+              />
             ))}
           </div>
         </div>
